@@ -106,7 +106,7 @@ Note that this step is crucial for avoiding errors in later recordings.
 10. print condition for row mean. If you change this value to 1, the program prints all the row means of the same ROI
 11. refractory number, it tells the algorithm to ingonre how many frames before start looking at the ROIs. The number 20 usually works the best.
 
-**threshold.txt** must be placed in the same folder as Grab.exe too. It provides determines the threshold of detecting a wave.
+**threshold.txt** must be placed in the same folder as Grab.exe too. It determines the threshold of detecting a wave.
 1. the threshold of detection of the area mean for both ROIs
 2. the threshold of detection for row mean for both ROIs
 
