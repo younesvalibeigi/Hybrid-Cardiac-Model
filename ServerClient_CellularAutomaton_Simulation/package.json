@@ -1,0 +1,20 @@
+{
+  "name": "2-nodegrabwebgl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "younesvalibeigi",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "nodemon": "^2.0.7",
+    "port": "^0.8.1",
+    "serial": "0.0.9",
+    "serialport": "^9.0.7",
+    "socket.io": "^3.1.2"
+  }
+}

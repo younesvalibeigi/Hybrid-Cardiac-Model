@@ -1,0 +1,17 @@
+{
+  "name": "9_fixeddelay",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "younesvalibeigi",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "serialport": "^9.0.7",
+    "socket.io": "^4.0.1"
+  }
+}
