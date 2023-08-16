@@ -1,24 +1,24 @@
 # Hybrid-Cardiac-Model
 ## Summary
-We are introducing software for a hybrid system that connects real-time 2D computational simulations developed by Abubu.js (A library developed for using WebGL) with cardiac monolayers using a fully optical system. 
+We are pleased to introduce a new software solution designed for a hybrid system. This system seamlessly integrates real-time 2D computational simulations, developed utilizing the Abubu.js library (a WebGL-based framework), with cardiac monolayers via a comprehensive optical interface. 
 ![image](https://user-images.githubusercontent.com/54210190/147422781-7e663cee-ce4e-4a3a-bb87-ffe2b6e7ce45.png)
 
-Note: all the detailed instructions are explained in the Appendices A, B, C, D, and F of my master's thesis. Link: [TBA]
+Note: all the detailed instructions are explained in the Appendices A, B, C, D, and F of my master's thesis. Link: https://escholarship.mcgill.ca/concern/theses/0g354m40b
 ## Step 1-Developing the NodeJS Server
 ### Initiating the NodeJS server
-NodeJS (we used v12.18.3) and npm package manager (we used 6.14.6) must be installed prior to developing a NodeJS project. Open the project folder and make a file called server.js. Open a terminal (Linux/Mac) or command prompt (Windows) and go to the project folder’s location. The following commands will initiate the NodeJs server.
+Node.js (version 12.18.3) and the npm package manager (version 6.14.6) are prerequisites for the development of a Node.js project. To commence the development process, navigate to the project directory and create a file named "server.js." Subsequently, open a terminal (on Linux/Mac) or a command prompt (on Windows), and navigate to the aforementioned project directory. Executing the subsequent commands will initialize the Node.js server.
 ```
 npm init
 ```
-Executing this command asks you a series of questions about package name, version, author, etc. Choose the entry point as server.js and type yes at the end. The code initiates the server. The following commands install the necessary packages for developing communication systems.
+Executing this command will prompt a series of inquiries regarding package details such as name, version, author, and more. Opt for "server.js" as the entry point and conclude by inputting "yes." This action will activate the server code. Subsequently, utilize the subsequent commands to install essential packages crucial for the development of communication systems.
 ```
 npm install express
 npm install socket.io
 npm install serialport
 ```
-The express package allows building the client. The socket.io and serialport package consecutively provides the tool for server-client and server-microcontroller communication systems. 
+The "express" package facilitates the construction of the client component. In tandem, the "socket.io" and "serialport" packages collectively furnish the necessary tools for establishing both server-client and server-microcontroller communication systems. 
 ### Brief summary of the files and folders
-The model allows bi-directional communication between the monolayer and the simulation through optical tools. NodeJS server works as a buffer zone connecting different system parts together. All the files related to the AbubuJS simulation are in a folder called Public.The below image shows the organization of AbubuJS files and libraries:
+The model facilitates bidirectional communication between the monolayer and the simulation by means of optical tools. The Node.js server serves as an intermediary, seamlessly connecting various components of the system. All files associated with the AbubuJS simulation are contained within a designated folder named "Public." The subsequent image visually illustrates the structural arrangement of AbubuJS files and accompanying libraries:
 
 ![image](https://user-images.githubusercontent.com/54210190/147422615-63822462-c58e-41fc-87be-c78020be5fca.png)
 
