@@ -1,4 +1,4 @@
-# Hybrid-Cardiac-Model
+# Supplementary Material: Hybrid-Cardiac-Model
 
 ## Overview
 
@@ -7,7 +7,7 @@ We are pleased to introduce a software package for a hybrid system that integrat
 ![image](https://user-images.githubusercontent.com/54210190/147422781-7e663cee-ce4e-4a3a-bb87-ffe2b6e7ce45.png)
 
 
-# Supplementary Material: NodeJS Server for Hybrid Cardiac Feedback System
+#  NodeJS Server for Hybrid Cardiac Feedback System
 
 This guide describes the NodeJS server architecture used in our hybrid system. It facilitates real-time interaction between a 2D simulation (via Abubu.js), a cardiac monolayer, a microcontroller, and a camera using `socket.io`, `serialport`, and TCP protocols.
 
@@ -205,7 +205,7 @@ if (sendResult != SOCKET_ERROR) {
 > Port `8081` is used for NodeJS–HTML communication  
 > Port `8080` is used for TCP communication with the camera
 
-## 🗂️ File and Folder Structure
+# AbubuJS simulation
 
 ### Brief Summary of the Files and Folders
 
