@@ -1,6 +1,6 @@
 # Hybrid-Cardiac-Model
 ## Summary
-We are pleased to introduce a new software solution designed for a hybrid system. This system seamlessly integrates real-time 2D computational simulations, developed utilizing the Abubu.js library (a WebGL-based framework), with cardiac monolayers via a comprehensive optical interface. 
+We are pleased to introduce a software package for a hybrid system that integrates real-time 2D cardiac simulations—built using the WebGL-based Abubu.js library—with living cardiac monolayers through a fully optical interface. 
 ![image](https://user-images.githubusercontent.com/54210190/147422781-7e663cee-ce4e-4a3a-bb87-ffe2b6e7ce45.png)
 
 Note: all the detailed instructions are explained in the Appendices A, B, C, D, and F of my master's thesis. Link: https://escholarship.mcgill.ca/concern/theses/0g354m40b
