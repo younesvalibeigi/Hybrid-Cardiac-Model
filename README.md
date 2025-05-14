@@ -1,10 +1,12 @@
 # Hybrid-Cardiac-Model
-## Summary
+
+## Overview
+
 We are pleased to introduce a software package for a hybrid system that integrates real-time 2D cardiac simulations—built using the WebGL-based Abubu.js library—with living cardiac monolayers through a fully optical interface.
 
 ![image](https://user-images.githubusercontent.com/54210190/147422781-7e663cee-ce4e-4a3a-bb87-ffe2b6e7ce45.png)
 
-Note: all the detailed instructions are explained in the Appendices A, B, C, D, and F of my master's thesis. Link: https://escholarship.mcgill.ca/concern/theses/0g354m40b
+
 # Supplementary Material: NodeJS Server for Hybrid Cardiac Feedback System
 
 This guide describes the NodeJS server architecture used in our hybrid system. It facilitates real-time interaction between a 2D simulation (via Abubu.js), a cardiac monolayer, a microcontroller, and a camera using `socket.io`, `serialport`, and TCP protocols.
