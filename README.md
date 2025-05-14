@@ -2,7 +2,7 @@
 
 ## Overview
 
-We are pleased to introduce a software package for a hybrid system that integrates real-time 2D cardiac simulations—built using the WebGL-based Abubu.js library—with living cardiac monolayers through a fully optical interface.
+We present a software package designed for a hybrid experimental-computational system that integrates real-time 2D cardiac simulations—implemented using the WebGL-based Abubu.js library—with living cardiac monolayers via a fully optical interface. This documentation provides a comprehensive, step-by-step guide intended for users with limited coding experience, detailing the functionality and execution of each component within the hybrid system.
 
 ![image](https://user-images.githubusercontent.com/54210190/147422781-7e663cee-ce4e-4a3a-bb87-ffe2b6e7ce45.png)
 
@@ -704,71 +704,100 @@ int remainder = abs((int)round(temp - ((int)((float)temp / frP)) * frP));
 
 > 🛠 Using a middle variable (`temp`) helps reduce float rounding errors when converting from time to frames.
 
-## Step 4-Running the code
-First, run the Node server on the local terminal (Linux/Mac) or Command Prompt (Windows):
-```
+# Step 5 — Running the Code
+
+First, launch the Node.js server in your terminal:
+
+```bash
 node server.js
 ```
-A browser page must be open, and the address of the appropriate local host should be searched. For our code, we used port 8081, so the address will be:
-```
+
+Next, open a browser and navigate to your local server. If you’re using port 8081, the address will be:
+
+```bash
 http://localhost:8081/
 ```
-The simulation will show up. You can run or stop the simulation from here. 
-- By clicking on the Canvas, you can create activation.
-- Shift and Click will create blocks in the simulation.
 
-Set these settings for Visual Studio:
-1. Solution configuration: Release
-2. Solution platform: x64
+This page hosts the simulation interface. From here:
+- Click on the canvas to trigger activations.
+- **Shift + Click** will create block zones in the simulation.
 
-Then compile the code. Afterward, run the camera code on the terminal from this address:
-```
+---
+
+### Visual Studio Configuration
+
+In Visual Studio:
+
+1. Set **Solution Configuration** to `Release`
+2. Set **Solution Platform** to `x64`
+
+Then, compile the project.
+
+To run the camera program, navigate to the following folder and execute the binary:
+
+```bash
 cd SDK-kit\Development\Samples\C++\Grab\bin\Release\x64
 ./Grab
 ```
-Using the below command, the program stops recording and starts saving the last 500 frames as a binary file. The file can be find in the same folder as Grab.exe:
-```
+
+To stop recording and save the last 500 frames as a binary file, press:
+
+```bash
 s
 ```
-Make sure to shut down the program using the following command:
-```
+
+> 📁 The saved binary file will appear in the same directory as `Grab.exe`.
+
+To safely shut down the program, press:
+
+```bash
 q
 ```
-Note that this step is crucial for avoiding errors in later recordings.
-## Step 5-Settings for the ROIs, thresholds, and refractory
-**camera_input.txt** must be placed in the same folder as Grab.exe. It provides the inputs for the two ROI four corners and the print conditions. 
-1. bottom area top edge (yEdgeSec)
-2. bottom area bottom edge (yEndSec)
-3. bottom area left edge (xEdgeSec)
-4. bottom area right edge (xEdgeSec) 
-5. top area top edge (yEdge)
-6. top area bottom edge (yEnd)
-7. top area left edge (xEdge)
-8. top area right edge (xEdge) 
-9. print condition for area mean. If you change this value to 1, the program prints the area mean of the top ROI
-10. print condition for row mean. If you change this value to 1, the program prints all the row means of the same ROI
-11. refractory number, it tells the algorithm to ingonre how many frames before start looking at the ROIs. The number 20 usually works the best.
 
-**threshold.txt** must be placed in the same folder as Grab.exe too. It determines the threshold of detecting a wave.
-1. the threshold of detection of the area mean for both ROIs
-2. the threshold of detection for row mean for both ROIs
+> ⚠️ It is important to quit properly to avoid corrupting the saved data.
 
+---
 
-In case you run into errors, these line in the Grab.cpp might help you find the bug:
-```
-// Printing the determined values
-//cout << "y1: " << y1sec << ", y2: " << y2 << "   z1: " << z1sec << ", z2: " << z2 << endl; 
+# Step 6 — Configuring ROIs, Thresholds, and Refractory Frames
 
-//cout << "delta Y: " << y1sec - y2 << endl;
-//cout << "delta Z: " << z2 - z1sec << endl;
-//cout << "CV: " << conductionVelocity << endl;
+Place the following two configuration files in the same folder as `Grab.exe`:
 
-//cout << "y2: " << y2 << "    timeRemInt: " << timeRemInt  << " = " << frameRemInt << "   frames" << endl;
-//cout << "num Fr from Start: " << numFrSinceStart << endl;
+### `camera_input.txt`
+
+This file defines the coordinates of the two ROIs and controls output settings:
+
+1. `yEdgeSec` — Top edge of the bottom ROI  
+2. `yEndSec` — Bottom edge of the bottom ROI  
+3. `xEdgeSec` — Left edge of the bottom ROI  
+4. `xEndSec` — Right edge of the bottom ROI  
+5. `yEdge` — Top edge of the top ROI  
+6. `yEnd` — Bottom edge of the top ROI  
+7. `xEdge` — Left edge of the top ROI  
+8. `xEnd` — Right edge of the top ROI  
+9. **Print area mean** — Set to `1` to print mean value of the top ROI  
+10. **Print row means** — Set to `1` to print row-wise means of the top ROI  
+11. **Refractory frames** — Number of frames to ignore after each wave detection. A value of `20` works well for 30 FPS.
+
+### `threshold.txt`
+
+This file sets the detection thresholds for the wave:
+
+1. **Area mean threshold** for both ROIs  
+2. **Row mean threshold** for both ROIs  
+
+---
+
+###  Debugging
+
+If you encounter issues during execution, uncomment the following lines in `Grab.cpp` to help trace the problem:
+
+```cpp
+// cout << "y1: " << y1sec << ", y2: " << y2 << "   z1: " << z1sec << ", z2: " << z2 << endl;
+// cout << "delta Y: " << y1sec - y2 << endl;
+// cout << "delta Z: " << z2 - z1sec << endl;
+// cout << "CV: " << conductionVelocity << endl;
+// cout << "y2: " << y2 << "    timeRemInt: " << timeRemInt  << " = " << frameRemInt << "   frames" << endl;
+// cout << "num Fr from Start: " << numFrSinceStart << endl;
 
 prevNumFrSinceStart = numFrSinceStart;
-
-cyclePeriods[cvNum] = timeSinceStart - prevTimeSinceStart;
-cout << cvNum << ": " << timeSinceStart - prevTimeSinceStart << endl;
-prevTimeSinceStart = timeSinceStart;
 ```
