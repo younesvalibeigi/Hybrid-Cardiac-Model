@@ -423,7 +423,7 @@ socket.emit("led", { value: delta_t_total });
 
 ---
 
-### 8. Reading Texture Data (Optional)
+### 8. Reading Texture Data
 
 To read voltage values from the simulation texture:
 
