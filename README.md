@@ -205,20 +205,237 @@ if (sendResult != SOCKET_ERROR) {
 > Port `8081` is used for NodeJS–HTML communication  
 > Port `8080` is used for TCP communication with the camera
 
-### Brief summary of the files and folders
-The model facilitates bidirectional communication between the monolayer and the simulation by means of optical tools. The Node.js server serves as an intermediary, seamlessly connecting various components of the system. All files associated with the AbubuJS simulation are contained within a designated folder named "Public." The subsequent image visually illustrates the structural arrangement of AbubuJS files and accompanying libraries:
+## 🗂️ File and Folder Structure
+
+### Brief Summary of the Files and Folders
+
+The hybrid model facilitates bidirectional communication between the cardiac monolayer and the simulation through an all-optical interface. A Node.js server acts as the central hub, coordinating interactions between the simulation, the camera, and the LED control system.
+
+All AbubuJS simulation files are located within the `public/` directory. The structure is illustrated below:
 
 ![image](https://user-images.githubusercontent.com/54210190/147422615-63822462-c58e-41fc-87be-c78020be5fca.png)
 
-The main.js file in the AbubuJS simulation bi-directionally communicates with the Node server. main.js has the main algorithm for the simulation. The shaders include GLSL codes for parallel processing of the simulation cells. The server communicates with the camera code (Grap.cpp) through a TCP socket and provides feedback to the Arduino (ArduinoCode.ino) through a serial port. Arduino turns on LEDs on the matrix to control the tissue. 
-server.js file includes the code for building socket.io communication system between the server (NodeJS) and the client (AbubuJs program).
-serialport build the communication system between NodeJS and the Arduino. The server-side of the code is implemented in server.js, and the Arduino-end can be found in ArduinoCode.ino file. 
+- `main.js`: Contains the primary simulation algorithm and handles WebSocket communication with the server.
+- Shader files (`.frag`): GLSL fragment shaders used for parallel simulation computations.
+- `server.js`: Builds the NodeJS server, handling both:
+  - `socket.io` communication with the simulation
+  - `serialport` communication with the Arduino
+- `Grab.cpp`: A C++ script used with the Pylon SDK to interface with the Basler camera, sending image-derived signals to the Node server via TCP.
+- `ArduinoCode.ino`: The Arduino firmware for controlling the LED matrix. This file should be opened using the Arduino IDE.
 
-1. server.js file works as the NodeJS server
-2. main.js and the shaders in the Public folder, including AbubuJS simulation
-3. Grab.cpp in Pylon sofware for the camera code
-4. ArduinoCode.ino in a folder called ArduinoCode. It has to be open using the Arduino IDE application.
+### File Overview
 
+1. `server.js`: NodeJS server to manage simulation, camera, and microcontroller communication  
+2. `main.js` and shader files (`initShader.frag`, `compShader.frag`) in the `public/` folder for running the AbubuJS-based simulation  
+3. `Grab.cpp`: Captures and processes signals from the camera; sends TCP data to the server  
+4. `ArduinoCode.ino`: Runs on Arduino to translate serial inputs into LED stimulation patterns
+
+This section explains how to build the hybrid cardiac simulation using the AbubuJS library. The model combines cellular automata dynamics with WebGL-based parallel computing. It also interfaces with the Node.js server to receive real-time input from a camera and emit feedback to a microcontroller.
+
+**Contents:**
+- Setting up the HTML and JavaScript files
+- Initializing computational textures
+- Developing solvers for simulation steps
+- Rendering and running the simulation
+- Communicating with the server
+- Shader codes for the cellular automata algorithm
+
+---
+
+### 1. HTML File Setup (`index.html`)
+
+Include the following scripts in your HTML file:
+
+```html
+<script src="socket.io/socket.io.js"></script>
+<script src='config.js'></script>
+<script src='libs/stats.js'></script>
+<script data-main="app/main" src="libs/require.js"></script>
+```
+
+And define a canvas to display the simulation:
+
+```html
+<canvas width=512 height=512 id='canvas'></canvas>
+```
+
+---
+
+### 2. JavaScript Setup (`main.js`)
+
+Use `require.js` to define the simulation module and load shaders:
+
+```javascript
+define([
+    'jquery',
+    'Abubu/Abubu.js',
+    'shader!initShader.frag',
+    'shader!compShader.frag',
+    'shader!clickShader.frag'
+],
+function($, Abubu, initShader, compShader, clickShader) {
+    // Simulation logic and socket communication go here
+});
+```
+
+The FK-based cellular automata model is constructed using this setup.
+
+---
+
+### 3. Defining the Canvas and Textures
+
+Set up the canvas and define the textures for state updates:
+
+```javascript
+env.canvas_1 = document.getElementById('canvas');
+env.canvas_1.width = env.width;
+env.canvas_1.height = env.height;
+
+env.txtCA1 = new Abubu.Float32RTexture(256, 256);
+env.txtCA2 = new Abubu.Float32RTexture(256, 256);
+```
+
+Create an initialization texture with random perturbations and scar definitions:
+
+```javascript
+var table = new Float32Array(256 * 256 * 4);
+var idx = 0;
+for (var j = 0; j < 256; j++) {
+    for (var i = 0; i < 256; i++) {
+        table[idx++] = env.psize * (Abubu.random() - 0.5);
+        table[idx++] = env.psize * (Abubu.random() - 0.5);
+        table[idx++] = 1.; // marks block
+        table[idx++] = 0.;
+    }
+}
+env.txtInit1 = new Abubu.Float32Texture(env.width, env.height, { data: table });
+```
+
+---
+
+### 4. Solver Setup
+
+#### Initial Solver
+
+```javascript
+env.initSolver = new Abubu.Solver({
+    fragmentShader: initShader,
+    renderTargets: {
+        o_col_0: { location: 0, target: env.txtCA1 },
+        o_col_1: { location: 1, target: env.txtCA2 },
+    }
+});
+env.initSolver.render();
+```
+
+#### Cellular Automata Solvers
+
+Two alternating solvers are defined to iteratively compute the next state:
+
+```javascript
+env.solverCA1 = new Abubu.Solver({
+    fragmentShader: compShader,
+    uniforms: {
+        input_txt: { type: 's', value: env.txtCA1 },
+        inital_txt: { type: 's', value: env.txtInit1 },
+        radius: { type: 'f', value: env.radius },
+        threshold: { type: 'f', value: env.threshold },
+        Lx: { type: 'f', value: env.Lx },
+    },
+    renderTargets: {
+        out_txt: { location: 0, target: env.txtCA2 },
+    }
+});
+
+env.solverCA2 = new Abubu.Solver({
+    fragmentShader: compShader,
+    uniforms: {
+        input_txt: { type: 's', value: env.txtCA2 },
+        inital_txt: { type: 's', value: env.txtInit1 },
+        radius: { type: 'f', value: env.radius },
+        threshold: { type: 'f', value: env.threshold },
+        Lx: { type: 'f', value: env.Lx },
+    },
+    renderTargets: {
+        out_txt: { location: 0, target: env.txtCA1 },
+    }
+});
+```
+
+Define a function to alternate between solvers:
+
+```javascript
+env.march = function() {
+    env.solverCA1.render();
+    env.solverCA2.render();
+};
+```
+
+---
+
+### 5. Displaying the Simulation
+
+```javascript
+env.displayCA = new Abubu.Plot2D({
+    target: env.txtCA1,
+    channel: 'r',
+    minValue: 0.,
+    enableMinColor: true,
+    minColor: [1, 1, 1],
+    maxValue: 1.,
+    colormap: env.colormap,
+    canvas: env.canvas_1,
+});
+env.displayCA.init();
+```
+
+---
+
+### 6. Running the Simulation Loop
+
+```javascript
+function run() {
+    env.march();
+    env.displayCA.render();
+    requestAnimationFrame(run);
+}
+requestAnimationFrame(run);
+```
+
+---
+
+### 7. Server Communication via WebSocket
+
+To receive signals from the server:
+
+```javascript
+const socket = io.connect('http://localhost:8081');
+socket.on('led', function(data){
+    t = data.value;
+});
+```
+
+To send updated simulation time back:
+
+```javascript
+socket.emit("led", { value: delta_t_total });
+```
+
+---
+
+### 8. Reading Texture Data (Optional)
+
+To read voltage values from the simulation texture:
+
+```javascript
+env.txtCA1Reader = new Abubu.TextureReader(env.txtCA1);
+env.txtCA1Data = env.txtCA1Reader.read();
+```
+
+This returns a 1D array of size `256*256*4`, where every four values represent the RGBA channels of a simulation cell.
+
+For more advanced features (e.g., clicking to create excitation), refer to:
+👉 https://github.com/kaboudian/WebGLTutorials
 
 ## Step 2-Initializing the Pylon software and setting up the camera
 ### Installing SDK package:
