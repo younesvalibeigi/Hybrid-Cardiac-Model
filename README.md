@@ -7,13 +7,13 @@ We are pleased to introduce a software package for a hybrid system that integrat
 ![image](https://user-images.githubusercontent.com/54210190/147422781-7e663cee-ce4e-4a3a-bb87-ffe2b6e7ce45.png)
 
 
-#  NodeJS Server for Hybrid Cardiac Feedback System
+# Step 1 — NodeJS Server for Hybrid Cardiac Feedback System
 
 This guide describes the NodeJS server architecture used in our hybrid system. It facilitates real-time interaction between a 2D simulation (via Abubu.js), a cardiac monolayer, a microcontroller, and a camera using `socket.io`, `serialport`, and TCP protocols.
 
 ---
 
-## 🛠 1. Setting Up the NodeJS Server
+## 1. Setting Up the NodeJS Server
 
 ### 1.1 Initializing the Project
 
@@ -39,7 +39,7 @@ npm install serialport
 
 ---
 
-## 🔌 2. Building the Server–Client Communication System
+##  2. Building the Server–Client Communication System
 
 ### 2.1 Importing Libraries and Launching the Server
 
@@ -90,7 +90,7 @@ io.emit('led', { value: camera_signal });
 
 ---
 
-## 🔧 3. Setting Up NodeJS–Arduino Communication
+## 3. Setting Up NodeJS–Arduino Communication
 
 ### 3.1 Configuring SerialPort
 
@@ -134,7 +134,7 @@ parser.on('data', data => {
 
 ---
 
-## 🌐 4. Connecting the Camera via TCP
+## 4. Connecting the Camera via TCP
 
 ### 4.1 TCP Socket on the NodeJS Server
 
@@ -161,7 +161,7 @@ net.createServer(function(sockNet){
 
 ---
 
-## 📷 5. TCP Client in C++ (Camera Side)
+## 5. TCP Client in C++ (Camera Side)
 
 ### 5.1 Establishing the Connection
 
@@ -205,7 +205,7 @@ if (sendResult != SOCKET_ERROR) {
 > Port `8081` is used for NodeJS–HTML communication  
 > Port `8080` is used for TCP communication with the camera
 
-# AbubuJS simulation
+# Step 2 —AbubuJS simulation
 
 ### Brief Summary of the Files and Folders
 
@@ -437,7 +437,7 @@ This returns a 1D array of size `256*256*4`, where every four values represent t
 For more advanced features (e.g., clicking to create excitation), refer to:
 👉 https://github.com/kaboudian/WebGLTutorials
 
-## 🎥 Step 2 — Initializing the Pylon Software and Setting Up the Camera
+# Step 3 — Initializing the Pylon Software and Setting Up the Camera
 
 ### Installing the SDK Package
 
@@ -510,7 +510,7 @@ for (each pixel i in current_frame):
 
 ---
 
-### C.3 Conduction Velocity and Δt_cam Calculation
+###  Conduction Velocity and Δt_cam Calculation
 
 The algorithm uses two rectangular ROIs (as shown in the figure above) to determine the wave’s velocity and timing.
 
@@ -588,14 +588,121 @@ storeFile.write(reinterpret_cast<char*>(&bubxdim), sizeof(uint32_t));
 storeFile.write((char*)unsigShiftedFrames, storeFrameSize * sizeof(uint8_t));
 ```
 
-## Step 3-Connection between Arduino kit and the matrix LED
-The following connection should be made between the Arduino Uno and the matrix LED
-1. port 13 on the Arduino to DIN pin and the matrix
-2. port 11 to CLK pin
-3. Ground port to GND
-4. 5V port to 5V pin
+#  Step 4 — Connecting the Arduino to the LED Matrix
+
+### Hardware Connections
+
+Connect the Arduino Uno to the matrix LED as follows:
+
+1. **Port 13** → `DIN` pin on the matrix  
+2. **Port 11** → `CLK` pin  
+3. **GND** → `GND`  
+4. **5V** → `5V`  
 
 ![image](https://user-images.githubusercontent.com/54210190/147423809-611938ca-b8a3-4d0a-9ffb-c3df1d2caf27.png)
+
+---
+
+### Arduino IDE Configuration
+
+Use **Arduino IDE version 1.8.49**. Under the **Tools** menu:
+
+- **Board**: Select `Arduino Uno`
+- **Port**: Choose the one assigned by your system (e.g., `COM5` on Windows)
+- Install the **Adafruit DotStarMatrix** library (version 1.0.5) via `Tools → Manage Libraries`.
+
+Arduino uses standard C/C++ syntax. Below is a breakdown of the required setup and code structure.
+
+---
+
+### Code Overview
+
+#### Required Libraries and Initializations
+
+```cpp
+#include <Adafruit_DotStar.h>
+#include <SPI.h>
+
+#define NUMPIXELS 64 
+Adafruit_DotStar matrix(NUMPIXELS, DOTSTAR_BRG);
+uint32_t color = 0x0000FF;  // Set blue color for LEDs
+int analogPin = A3;         // Analog input from the camera
+```
+
+#### `setup()` Function
+
+```cpp
+void setup() {
+  Serial.begin(9600);
+  matrix.begin();            // Initialize output pins
+  matrix.setBrightness(255); // Max brightness
+  matrix.show();             // Ensure all LEDs are off at start
+}
+```
+
+---
+
+### Main Logic (`loop()` Function)
+
+The `loop()` function is executed repeatedly and performs the following tasks:
+
+1. **Read the current frame from the camera**
+2. **Activate the LED at the right time**
+3. **Receive timing signal from the NodeJS server**
+4. **Decompose the received signal into frame count and remainder**
+
+#### Camera Signal Handling
+
+```cpp
+val = analogRead(analogPin); 
+if (val > 600 && prevVal <= 600) {
+    f_camera++;
+}
+
+if (f_camera == f_arduino) {
+    delayMicroseconds(remainder * 1000);        // Wait before activation
+    matrix.setPixelColor(LED_number, color);    // Activate LED
+    matrix.show();
+    // LEDs should remain on for ~100 ms
+}
+```
+
+> 💡 LEDs can stay on for ~3 frames (~100 ms) to ensure reliable tissue activation.
+
+---
+
+### Receiving Timing from NodeJS
+
+```cpp
+if (Serial.available()) {
+    byte input;
+    input = Serial.read();
+```
+
+The server sends four bytes representing the signal `t`. The Arduino reconstructs `t` by combining the bytes:
+
+```cpp
+if (first_signal)  inputInt = inputInt + input * 1;
+if (second_signal) inputInt = inputInt + (long)input * 256;
+if (third_signal)  inputInt = inputInt + (long)input * 65536;
+if (fourth_signal) inputInt = inputInt + (long)input * 16777216;
+```
+
+---
+
+### Timing Decomposition
+
+Convert the integer `t` into the number of frames and the remainder (in milliseconds):
+
+```cpp
+float frP = 1000.0 / 30.0; // Frame period at 30 FPS
+
+int f_arduino = abs((long)((float)(inputInt) / frP));
+int temp = (int)(inputInt % 100);
+int remainder = abs((int)round(temp - ((int)((float)temp / frP)) * frP));
+```
+
+> 🛠 Using a middle variable (`temp`) helps reduce float rounding errors when converting from time to frames.
 
 ## Step 4-Running the code
 First, run the Node server on the local terminal (Linux/Mac) or Command Prompt (Windows):
