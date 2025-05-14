@@ -5,19 +5,204 @@ We are pleased to introduce a software package for a hybrid system that integrat
 ![image](https://user-images.githubusercontent.com/54210190/147422781-7e663cee-ce4e-4a3a-bb87-ffe2b6e7ce45.png)
 
 Note: all the detailed instructions are explained in the Appendices A, B, C, D, and F of my master's thesis. Link: https://escholarship.mcgill.ca/concern/theses/0g354m40b
-## Step 1-Developing the NodeJS Server
-### Initiating the NodeJS server
-Node.js (version 12.18.3) and the npm package manager (version 6.14.6) are prerequisites for the development of a Node.js project. To commence the development process, navigate to the project directory and create a file named "server.js." Subsequently, open a terminal (on Linux/Mac) or a command prompt (on Windows), and navigate to the aforementioned project directory. Executing the subsequent commands will initialize the Node.js server.
-```
+# Supplementary Material: NodeJS Server for Hybrid Cardiac Feedback System
+
+This guide describes the NodeJS server architecture used in our hybrid system. It facilitates real-time interaction between a 2D simulation (via Abubu.js), a cardiac monolayer, a microcontroller, and a camera using `socket.io`, `serialport`, and TCP protocols.
+
+---
+
+## 🛠 1. Setting Up the NodeJS Server
+
+### 1.1 Initializing the Project
+
+Ensure **NodeJS** (v12.18.3) and **npm** (v6.14.6) are installed. Open a terminal (Linux/macOS) or command prompt (Windows), navigate to your project folder, and initialize the project:
+
+```bash
 npm init
 ```
-Executing this command will prompt a series of inquiries regarding package details such as name, version, author, and more. Opt for "server.js" as the entry point and conclude by inputting "yes." This action will activate the server code. Subsequently, utilize the subsequent commands to install essential packages crucial for the development of communication systems.
-```
+
+This command prompts for metadata like package name, version, and entry point. Set the **entry point to `server.js`** and confirm with `yes`.
+
+### 1.2 Installing Required Packages
+
+```bash
 npm install express
 npm install socket.io
 npm install serialport
 ```
-The "express" package facilitates the construction of the client component. In tandem, the "socket.io" and "serialport" packages collectively furnish the necessary tools for establishing both server-client and server-microcontroller communication systems. 
+
+- `express`: Creates the client-server structure  
+- `socket.io`: Enables real-time communication between server and client  
+- `serialport`: Manages communication with the Arduino microcontroller
+
+---
+
+## 🔌 2. Building the Server–Client Communication System
+
+### 2.1 Importing Libraries and Launching the Server
+
+In your `server.js`, add the following code to initialize the server and expose a static folder named `public`:
+
+```javascript
+const express = require('express');
+const app = express();
+const server = require('http').createServer(app);
+const io = require("socket.io")(server);
+
+const HOST = 'localhost';
+const PORTIO = 8081;
+
+server.listen(PORTIO, function(){});
+app.use(express.static('public'));
+```
+
+This makes the server accessible at `http://localhost:8081`.
+
+### 2.2 Receiving Data from the Client
+
+The following code sets up the `socket.io` event listener to receive data (e.g., light patterns) from the client. The channel name is `led`.
+
+```javascript
+io.on("connection", function(sockIO){
+    console.log('Client is connected');
+
+    // Receive data from the public folder (client)
+    sockIO.on('led', function(data) {
+        var received_data = data.value;
+        /** Insert code here to forward received_data to the Arduino */
+    });
+
+    sockIO.on('disconnect', (reason) => {
+        console.log('Client is disconnected');
+    });
+});
+```
+
+### 2.3 Sending Data to the Client
+
+To send a signal (e.g., from the camera) to the client, use the following:
+
+```javascript
+io.emit('led', { value: camera_signal });
+```
+
+---
+
+## 🔧 3. Setting Up NodeJS–Arduino Communication
+
+### 3.1 Configuring SerialPort
+
+Add the following to `server.js` to connect to the Arduino over USB:
+
+```javascript
+const SerialPort = require("serialport");
+const Readline = require('@serialport/parser-readline');
+const serialPort = new SerialPort("COM5", { baudRate: 9600 });
+const parser = serialPort.pipe(new Readline({ delimiter: '\n' }));
+```
+
+> **Note:**  
+> - Windows: `COM1`, `COM2`, ..., `COM5`  
+> - macOS: `/dev/cu.usbmodem14101`  
+> - Ubuntu: `/dev/ttyACM0`
+
+### 3.2 Sending Data to Arduino
+
+After receiving data from the client, you must convert it into a format compatible with the serial port (buffer of 4 bytes):
+
+```javascript
+let buf = Buffer.allocUnsafe(4);
+buf.writeInt32LE(received_data);
+serialPort.write(buf);
+```
+
+### 3.3 Receiving Data from Arduino
+
+Although not necessary for the hybrid system, you can also listen for incoming data from the Arduino:
+
+```javascript
+serialPort.on("open", () => {
+    console.log('Arduino is connected');
+});
+
+parser.on('data', data => {
+    // data is the byte value received from Arduino
+});
+```
+
+---
+
+## 🌐 4. Connecting the Camera via TCP
+
+### 4.1 TCP Socket on the NodeJS Server
+
+The Transmission Control Protocol (TCP) socket lets the camera (written in C++) communicate with the server. Add this to `server.js`:
+
+```javascript
+const net = require('net');
+const PORTNET = 8080;
+
+net.createServer(function(sockNet){
+    sockNet.on('data', async function(data) {
+        camera_signal = JSON.parse(data);
+
+        /** Insert code here to send data to the client */
+
+        sockNet.write("Return String\n");  // Acknowledge receipt
+    });
+
+    sockNet.on('close', function(data) {});
+}).listen(PORTNET, HOST);
+```
+
+> **Important:** TCP is a closed loop — each data received from the client must be acknowledged with a response.
+
+---
+
+## 📷 5. TCP Client in C++ (Camera Side)
+
+### 5.1 Establishing the Connection
+
+```cpp
+string ipAddress = "127.0.0.1";  // Server IP
+int port = 8080;                 // TCP Port
+
+WSAData data;
+WORD ver = MAKEWORD(2, 2);
+int wsResult = WSAStartup(ver, &data);
+
+// Create socket
+SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+
+sockaddr_in hint;
+hint.sin_family = AF_INET;
+hint.sin_port = htons(port);
+inet_pton(AF_INET, ipAddress.c_str(), &hint.sin_addr);
+
+// Connect
+int connResult = connect(sock, (sockaddr*)&hint, sizeof(hint));
+```
+
+### 5.2 Sending Signal to the Server
+
+Convert the signal to a string, send it, and await a response:
+
+```cpp
+char buf[4096];
+std::string s = std::to_string(signal);
+char const* pchar = s.c_str();
+
+int sendResult = send(sock, pchar, (int)strlen(pchar), 0);
+
+if (sendResult != SOCKET_ERROR) {
+    ZeroMemory(buf, 4096);
+    int bytesReceived = recv(sock, buf, 4096, 0);
+}
+```
+
+> Port `8081` is used for NodeJS–HTML communication  
+> Port `8080` is used for TCP communication with the camera
+
 ### Brief summary of the files and folders
 The model facilitates bidirectional communication between the monolayer and the simulation by means of optical tools. The Node.js server serves as an intermediary, seamlessly connecting various components of the system. All files associated with the AbubuJS simulation are contained within a designated folder named "Public." The subsequent image visually illustrates the structural arrangement of AbubuJS files and accompanying libraries:
 
