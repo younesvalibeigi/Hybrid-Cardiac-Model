@@ -437,26 +437,177 @@ This returns a 1D array of size `256*256*4`, where every four values represent t
 For more advanced features (e.g., clicking to create excitation), refer to:
 👉 https://github.com/kaboudian/WebGLTutorials
 
-## Step 2-Initializing the Pylon software and setting up the camera
-### Installing SDK package:
-A C++ program linked to the Pylon software development kit (SDK, version 6.0.1) was written using Microsoft Visual Studio (version community 2019). The following path in the SDK kit reaches a C++ code that needs to include the content of the Grab.cpp file in this respiratory.
+## 🎥 Step 2 — Initializing the Pylon Software and Setting Up the Camera
+
+### Installing the SDK Package
+
+A C++ program was developed using Microsoft Visual Studio (Community Edition 2019) and linked to the Pylon SDK (version 6.0.1). To modify the base program, locate and update the following path within the SDK:
+
 ```
 SDK-kit\Development\Samples\C++\Grab\Grab.cpp
 ```
-Note that in order to access the Development folder, the development version of SDK must be installed. The camera algorithm look at the regions, calculate the time difference and distance between a detected wave in these two regions by locating the wave as specific rows. Using the calculated conduction velocity of the cardiac wave, the camera predicts the location of the wave. 
+
+> 📌 The development version of the SDK must be installed to access the `Development` folder.
+
+The algorithm detects wave motion by analyzing pixel intensities across specific rows of the frame. Based on the calculated conduction velocity, the wave’s future location is predicted.
+
 ![image](https://user-images.githubusercontent.com/54210190/147423120-4d68f023-32c9-4a0a-89c2-7667c40282dd.png)
 
-Note that the algorithm only looks at the rows if the average threshold of the region passes a specific threshold, and it locates the wave at a particular row if the row average passes another predetermined threshold. Step 5 explains how to determine these thresholds and set them. 
-The following settings must be applied to the pylon Viewer 64-bit software after opening the camera on the software:
-- Analog control => Gain Auto: Continuous
-- Acquisition Control => Exposure Time [us]: 30000.0
-- Acquisition Control => Enable Acquisition Frame Rate: Check
-- Acquisition Control => Acquisition Frame Rate [Hz]: 30.0
-- Digital I/O Control => Line Selector: Line 3
-- Digital I/O Control => Line Mode: Output
-- Digital I/O Control => Line Source: Exposure Active
+The row-based detection activates only if the average intensity of the region exceeds a predefined threshold. Once this condition is met, the algorithm identifies the wave based on row-wise averages. Thresholds are discussed in more detail in the next section.
 
-Note that the camera should be closed on the software before running the camera algorithm through the cammand line. 
+### Required Camera Settings in Pylon Viewer (64-bit)
+
+Before executing the C++ algorithm, configure the camera settings as follows:
+
+- **Analog Control → Gain Auto**: `Continuous`
+- **Acquisition Control → Exposure Time [µs]**: `30000.0`
+- **Acquisition Control → Enable Acquisition Frame Rate**: `Checked`
+- **Acquisition Control → Acquisition Frame Rate [Hz]**: `30.0`
+- **Digital I/O Control → Line Selector**: `Line 3`
+- **Digital I/O Control → Line Mode**: `Output`
+- **Digital I/O Control → Line Source**: `Exposure Active`
+
+> ⚠️ Make sure the camera is closed in the Pylon Viewer before executing the C++ code from the terminal.
+
+---
+
+## 💡 Step 3 — Connecting Arduino to the LED Matrix
+
+Wire the Arduino Uno to the LED matrix as follows:
+
+1. **Port 13** → `DIN` pin on the matrix  
+2. **Port 11** → `CLK` pin  
+3. **GND** → `GND`  
+4. **5V** → `5V`  
+
+![image](https://user-images.githubusercontent.com/54210190/147423809-611938ca-b8a3-4d0a-9ffb-c3df1d2caf27.png)
+
+---
+
+## 💾 Appendix C — Camera Algorithm and Motion Analysis
+
+### C.1 Installing the SDK Package
+
+As mentioned above, the SDK should be version 6.0.1. Modify the following file to implement the camera algorithm:
+
+```
+SDK-kit\Development\Samples\C++\Grab\Grab.cpp
+```
+
+### C.2 Frame Filtering Logic
+
+Locate the following line in `Grab.cpp`:
+
+```cpp
+// Image grabbed successfully?
+if (ptrGrabResult->GrabSucceeded()) {
+    const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
+    // Insert filtering algorithm here
+}
+```
+
+#### 📌 Frame Filtering Pseudocode
+
+```cpp
+abs(current_frame - sixth_previous_frame)
+```
+
+```text
+xdim = 1920
+ydim = 1200
+current_frame[xdim * ydim]
+six_previous_frames[xdim * ydim * 6]
+z = 0 // current frame number
+```
+
+```cpp
+for (each pixel i in current_frame):
+    current_frame[i] = pixel_value
+    six_previous_frames[i] = pixel_value
+    if (z >= 6):
+        filtered_image[i] = abs(current_frame[i] - six_previous_frames[i - 6 * xdim * ydim])
+```
+
+---
+
+### C.3 Conduction Velocity and Δt_cam Calculation
+
+The algorithm uses two rectangular ROIs (as shown in the figure above) to determine the wave’s velocity and timing.
+
+#### 📌 Row and Area Threshold Evaluation
+
+```cpp
+float area_threshold = 10.6;
+float row_threshold = 15.0;
+```
+
+You can determine thresholds manually by printing row and area averages using `cout << endl`. If waves are not detected, lower the thresholds until regular peaks are observed.
+
+#### 📌 Velocity Estimation Pseudocode
+
+```cpp
+// First ROI
+if (area_average_box1 > area_threshold && refractory_value == 0) {
+    z1 = z;
+    refractory_value = max_refractory;
+    for (each row i in box1) {
+        if (row_averages_box1[i] > row_threshold) {
+            y1 = i;
+            break;
+        }
+    }
+}
+
+// Second ROI
+if (area_average_box2 > area_threshold && z1 and y1 are valid) {
+    z2 = z;
+    for (each row i in box2) {
+        if (row_averages_box2[i] > row_threshold) {
+            y2 = i;
+            break;
+        }
+    }
+
+    conduction_velocity = (y2 - y1) / (z2 - z1);
+    delta_y = distance from y2 to predicted location;
+    delta_t_camera = delta_y / conduction_velocity * (30 / 1000); // Convert FPS to ms
+
+    // Reset and ignore future waves for a refractory period
+    reset y1, y2, z1, z2;
+}
+```
+
+> Recommended: `max_refractory = 20` for 30 FPS.
+
+---
+
+### C.4 Saving Frames for Post-Processing
+
+The last 500 filtered frames are saved for external analysis. Below is the code used to format and save data compatible with the GView application:
+
+```cpp
+int numFrames = 500;
+int storeFrameSize = 500 * xdim * ydim;
+
+uint8_t* unsigShiftedFrames = new uint8_t[storeFrameSize];
+for (int i = 0; i < storeFrameSize; i++) {
+    unsigShiftedFrames[i] = (unsigned short int)stored500Frames[i];
+}
+
+uint32_t bubmode = _byteswap_ulong(2); 
+uint32_t bubzdim = _byteswap_ulong(numFrames);
+uint32_t bubxdim = _byteswap_ulong(xdim);
+uint32_t bubydim = _byteswap_ulong(ydim);
+
+fstream storeFile;
+storeFile = fstream("C:\file location\binary_file", ios::out | ios::binary);
+storeFile.write(reinterpret_cast<char*>(&bubmode), sizeof(uint32_t));
+storeFile.write(reinterpret_cast<char*>(&bubzdim), sizeof(uint32_t));
+storeFile.write(reinterpret_cast<char*>(&bubydim), sizeof(uint32_t));
+storeFile.write(reinterpret_cast<char*>(&bubxdim), sizeof(uint32_t));
+storeFile.write((char*)unsigShiftedFrames, storeFrameSize * sizeof(uint8_t));
+```
+
 ## Step 3-Connection between Arduino kit and the matrix LED
 The following connection should be made between the Arduino Uno and the matrix LED
 1. port 13 on the Arduino to DIN pin and the matrix
