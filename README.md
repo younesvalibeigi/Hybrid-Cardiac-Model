@@ -469,32 +469,12 @@ Before executing the C++ algorithm, configure the camera settings as follows:
 
 > ⚠️ Make sure the camera is closed in the Pylon Viewer before executing the C++ code from the terminal.
 
----
 
-## 💡 Step 3 — Connecting Arduino to the LED Matrix
 
-Wire the Arduino Uno to the LED matrix as follows:
+##  Camera Algorithm and Motion Analysis
 
-1. **Port 13** → `DIN` pin on the matrix  
-2. **Port 11** → `CLK` pin  
-3. **GND** → `GND`  
-4. **5V** → `5V`  
 
-![image](https://user-images.githubusercontent.com/54210190/147423809-611938ca-b8a3-4d0a-9ffb-c3df1d2caf27.png)
-
----
-
-## 💾 Appendix C — Camera Algorithm and Motion Analysis
-
-### C.1 Installing the SDK Package
-
-As mentioned above, the SDK should be version 6.0.1. Modify the following file to implement the camera algorithm:
-
-```
-SDK-kit\Development\Samples\C++\Grab\Grab.cpp
-```
-
-### C.2 Frame Filtering Logic
+###  Frame Filtering Logic
 
 Locate the following line in `Grab.cpp`:
 
@@ -581,7 +561,7 @@ if (area_average_box2 > area_threshold && z1 and y1 are valid) {
 
 ---
 
-### C.4 Saving Frames for Post-Processing
+###  Saving Frames for Post-Processing
 
 The last 500 filtered frames are saved for external analysis. Below is the code used to format and save data compatible with the GView application:
 
