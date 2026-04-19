@@ -2,14 +2,14 @@
 
 ## Overview
 
-We present a software package designed for a coupled cardiac system that integrates real-time 2D cardiac simulations—implemented using the WebGL-based Abubu.js library—with living cardiac monolayers via a fully optical interface. This documentation provides a comprehensive, step-by-step guide intended for users with limited coding experience, detailing the functionality and execution of each component within the hybrid system.
+We present a software package designed for a coupled cardiac system that integrates real-time 2D cardiac simulations—implemented using the WebGL-based Abubu.js library—with living cardiac monolayers via a fully optical interface. This documentation provides a comprehensive, step-by-step guide intended for users with limited coding experience, detailing the functionality and execution of each component within the coupled system.
 
 ![image](https://user-images.githubusercontent.com/54210190/147422781-7e663cee-ce4e-4a3a-bb87-ffe2b6e7ce45.png)
 
 
-# Step 1 — NodeJS Server for Hybrid Cardiac Feedback System
+# Step 1 — NodeJS Server for Coupled Cardiac Feedback System
 
-This guide describes the NodeJS server architecture used in our hybrid system. It facilitates real-time interaction between a 2D simulation (via Abubu.js), a cardiac monolayer, a microcontroller, and a camera using `socket.io`, `serialport`, and TCP protocols.
+This guide describes the NodeJS server architecture used in our coupled system. It facilitates real-time interaction between a 2D simulation (via Abubu.js), a cardiac monolayer, a microcontroller, and a camera using `socket.io`, `serialport`, and TCP protocols.
 
 ---
 
@@ -120,7 +120,7 @@ serialPort.write(buf);
 
 ### 3.3 Receiving Data from Arduino
 
-Although not necessary for the hybrid system, you can also listen for incoming data from the Arduino:
+Although not necessary for the coupled system, you can also listen for incoming data from the Arduino:
 
 ```javascript
 serialPort.on("open", () => {
@@ -209,9 +209,11 @@ if (sendResult != SOCKET_ERROR) {
 
 ### Brief Summary of the Files and Folders
 
-The hybrid model facilitates bidirectional communication between the cardiac monolayer and the simulation through an all-optical interface. A Node.js server acts as the central hub, coordinating interactions between the simulation, the camera, and the LED control system.
+The coupled system facilitates bidirectional communication between the cardiac monolayer and the simulation through an all-optical interface. A Node.js server acts as the central hub, coordinating interactions between the simulation, the camera, and the LED control system.
 
-All AbubuJS simulation files are located within the `public/` directory. The structure is illustrated below:
+All AbubuJS simulation files are located within the `public/` directory. The `public` folder can be replaced with any model suited to the experimental needs. We provide both cellular automata and Fenton–Karma models; additional models can be obtained from Kaboudian et al. (2019) supplementary materials: https://www.sciencedirect.com/science/article/pii/S0960077919300037?via%3Dihub
+
+The structure is illustrated below:
 
 ![image](https://user-images.githubusercontent.com/54210190/147422615-63822462-c58e-41fc-87be-c78020be5fca.png)
 
@@ -230,7 +232,7 @@ All AbubuJS simulation files are located within the `public/` directory. The str
 3. `Grab.cpp`: Captures and processes signals from the camera; sends TCP data to the server  
 4. `ArduinoCode.ino`: Runs on Arduino to translate serial inputs into LED stimulation patterns
 
-This section explains how to build the hybrid cardiac simulation using the AbubuJS library. The model combines cellular automata dynamics with WebGL-based parallel computing. It also interfaces with the Node.js server to receive real-time input from a camera and emit feedback to a microcontroller.
+This section explains how to build the coupled cardiac simulation using the AbubuJS library. The model combines cellular automata dynamics with WebGL-based parallel computing. It also interfaces with the Node.js server to receive real-time input from a camera and emit feedback to a microcontroller.
 
 **Contents:**
 - Setting up the HTML and JavaScript files
